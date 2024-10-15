@@ -1,4 +1,5 @@
 import json
+import os
 
 class StateMachine:
     def __init__(self, initial_state, transition_matrix):
@@ -19,32 +20,47 @@ def load_transition_matrix(file_path):
     with open(file_path, 'r') as f:
         return json.load(f)
 
+def list_json_files(directory):
+    return [file for file in os.listdir(directory) if file.endswith('.json')]
 
-state_machines = {
-    "elevator": "elevator_transitions.json",
-    "vending_machine": "vending_machine_transitions.json"
-}
+state_machine_directory = './state_machines/'
+available_files = list_json_files(state_machine_directory)
 
-print("Available state machines: ", ", ".join(state_machines.keys()))
-choice = input("Which state machine would you like to run? ").strip().lower()
-
-if choice in state_machines:
-    transition_matrix = load_transition_matrix(state_machines[choice])
-    if choice == "elevator":
-        initial_state = 'Idle'  # Elevator starts in Idle state
-        events = ['up', 'stop', 'door_open', 'door_close', 'down', 'emergency_trigger', 'reset']
-    elif choice == "vending_machine":
-        initial_state = 'Idle'  # Vending machine starts in Idle state
-        events = ['insert_money', 'select_item', 'item_dispensed', 'out_of_service', 'repair', 'cancel']
-    
-    machine = StateMachine(initial_state=initial_state, transition_matrix=transition_matrix)
-    print(f"Initial State of {choice.capitalize()}: {machine.get_state()}")
-
-    for event in events:
-        try:
-            machine.transition(event)
-            print(f"After event '{event}', Current State: {machine.get_state()}")
-        except ValueError as e:
-            print(e)
+if not available_files:
+    print("No state machine files found!")
 else:
-    print("Invalid choice! Please select a valid state machine.")
+    print("Available state machines:")
+    for idx, file in enumerate(available_files, 1):
+        print(f"{idx}. {file}")
+
+    choice = input(f"Choose a state machine by number (1-{len(available_files)}): ").strip()
+
+    try:
+        choice_idx = int(choice) - 1
+        if 0 <= choice_idx < len(available_files):
+            chosen_file = available_files[choice_idx]
+            transition_matrix = load_transition_matrix(os.path.join(state_machine_directory, chosen_file))
+
+            if 'elevator' in chosen_file:
+                initial_state = 'Idle'
+                events = ['up', 'stop', 'door_open', 'door_close', 'down', 'emergency_trigger', 'reset']
+            elif 'vending_machine' in chosen_file:
+                initial_state = 'Idle'
+                events = ['insert_money', 'select_item', 'item_dispensed', 'out_of_service', 'repair', 'cancel']
+            else:
+                initial_state = 'Idle'
+                events = []
+
+            machine = StateMachine(initial_state=initial_state, transition_matrix=transition_matrix)
+            print(f"Initial State of {chosen_file}: {machine.get_state()}")
+
+            for event in events:
+                try:
+                    machine.transition(event)
+                    print(f"After event '{event}', Current State: {machine.get_state()}")
+                except ValueError as e:
+                    print(e)
+        else:
+            print("Invalid choice! Please select a valid number.")
+    except ValueError:
+        print("Invalid input! Please enter a number.")
