@@ -29,12 +29,18 @@ class StateMachine:
         return self.current_state
 
 
-def load_transition_matrix(file_path):
+def load_state_machine(file_path):
     with open(file_path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+    initial_state = data["initial_state"]
+    events = data["events"]
+    transitions = data["transitions"]
+    return initial_state, events, transitions
+
 
 def list_json_files(directory):
     return [file for file in os.listdir(directory) if file.endswith('.json')]
+
 
 state_machine_directory = './state_machines/'
 available_files = list_json_files(state_machine_directory)
@@ -53,19 +59,10 @@ else:
         if 0 <= choice_idx < len(available_files):
             chosen_file = available_files[choice_idx]
             logging.info(f"User selected state machine file: {chosen_file}")
-            transition_matrix = load_transition_matrix(os.path.join(state_machine_directory, chosen_file))
 
-            if 'elevator' in chosen_file:
-                initial_state = 'Idle'
-                events = ['up', 'stop', 'door_open', 'door_close', 'down', 'emergency_trigger', 'reset']
-            elif 'vending_machine' in chosen_file:
-                initial_state = 'Idle'
-                events = ['insert_money', 'select_item', 'item_dispensed', 'out_of_service', 'repair', 'cancel']
-            else:
-                initial_state = 'Idle'
-                events = []
-
+            initial_state, events, transition_matrix = load_state_machine(os.path.join(state_machine_directory, chosen_file))
             machine = StateMachine(initial_state=initial_state, transition_matrix=transition_matrix)
+
             logging.info(f"Initial State: {machine.get_state()}")
 
             for event in events:
@@ -77,3 +74,4 @@ else:
             logging.error("Invalid choice! Please select a valid number.")
     except ValueError:
         logging.error("Invalid input! Please enter a number.")
+
