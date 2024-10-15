@@ -1,7 +1,9 @@
-import json
 import os
 import logging
+import argparse
+import json
 
+# LoggerConfig class for setting up logging
 class LoggerConfig:
     """A class to configure logging for the application."""
     
@@ -17,9 +19,10 @@ class LoggerConfig:
             ]
         )
 
-
+# StateMachine class for managing state transitions
 class StateMachine:
     def __init__(self, file_path):
+        # Load the state machine configuration from the provided file
         self.load_state_machine(file_path)
 
     def load_state_machine(self, file_path):
@@ -34,14 +37,18 @@ class StateMachine:
 
     def transition(self, event):
         """Handles state transitions based on an event."""
+        # Log the received event and current state
         logging.info(f"Received event: {event} in state: {self.current_state}")
 
+        # Check if the current state and event combination exist in the transition matrix
         if event in self.transition_matrix.get(self.current_state, {}):
             old_state = self.current_state
             self.current_state = self.transition_matrix[self.current_state][event]
 
+            # Log the state transition
             logging.info(f"Transitioned from {old_state} to {self.current_state} on event: {event}")
         else:
+            # Log the invalid transition attempt
             logging.error(f"Invalid transition from {self.current_state} with event {event}")
             raise ValueError(f"Invalid transition from {self.current_state} with event {event}")
 
@@ -54,34 +61,59 @@ def list_json_files(directory):
     """Lists all JSON files in the specified directory."""
     return [file for file in os.listdir(directory) if file.endswith('.json')]
 
-LoggerConfig.setup()
 
-state_machine_directory = './state_machines/'
-available_files = list_json_files(state_machine_directory)
+def main():
+    """Main function for executing the state machine program."""
+    LoggerConfig.setup()
 
-if not available_files:
-    logging.error("No state machine files found!")
-else:
-    print("Available state machines:")
-    for idx, file in enumerate(available_files, 1):
-        print(f"{idx}. {file}")
+    parser = argparse.ArgumentParser(description="Run a state machine from a JSON file.")
+    parser.add_argument('--directory', 
+                        type=str, 
+                        default='./state_machines/', 
+                        help='Directory where state machine JSON files are stored (default: ./state_machines/)')
+    parser.add_argument('--file', 
+                        type=str, 
+                        help='The JSON file to use for the state machine.')
 
-    choice = input(f"Choose a state machine by number (1-{len(available_files)}): ").strip()
+    args = parser.parse_args()
 
-    try:
-        choice_idx = int(choice) - 1
-        if 0 <= choice_idx < len(available_files):
-            chosen_file = available_files[choice_idx]
-            logging.info(f"User selected state machine file: {chosen_file}")
+    state_machine_directory = args.directory
 
-            machine = StateMachine(file_path=os.path.join(state_machine_directory, chosen_file))
+    if not args.file:
+        available_files = list_json_files(state_machine_directory)
 
-            for event in machine.events:
-                try:
-                    machine.transition(event)
-                except ValueError as e:
-                    logging.error(e)
-        else:
-            logging.error("Invalid choice! Please select a valid number.")
-    except ValueError:
-        logging.error("Invalid input! Please enter a number.")
+        if not available_files:
+            logging.error("No state machine files found!")
+            return
+
+        print("Available state machines:")
+        for idx, file in enumerate(available_files, 1):
+            print(f"{idx}. {file}")
+
+        choice = input(f"Choose a state machine by number (1-{len(available_files)}): ").strip()
+
+        try:
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(available_files):
+                chosen_file = available_files[choice_idx]
+            else:
+                logging.error("Invalid choice! Please select a valid number.")
+                return
+        except ValueError:
+            logging.error("Invalid input! Please enter a number.")
+            return
+    else:
+        chosen_file = args.file
+
+    logging.info(f"User selected state machine file: {chosen_file}")
+
+    machine = StateMachine(file_path=os.path.join(state_machine_directory, chosen_file))
+
+    for event in machine.events:
+        try:
+            machine.transition(event)
+        except ValueError as e:
+            logging.error(e)
+
+if __name__ == "__main__":
+    main()
