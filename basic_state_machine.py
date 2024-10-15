@@ -1,5 +1,13 @@
 import json
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("state_machine.log"),
+                        logging.StreamHandler()
+                    ])
 
 class StateMachine:
     def __init__(self, initial_state, transition_matrix):
@@ -7,9 +15,14 @@ class StateMachine:
         self.transition_matrix = transition_matrix
 
     def transition(self, event):
+        logging.info(f"Received event: {event} in state: {self.current_state}")
+        
         if event in self.transition_matrix.get(self.current_state, {}):
+            old_state = self.current_state
             self.current_state = self.transition_matrix[self.current_state][event]
+            logging.info(f"Transitioned from {old_state} to {self.current_state} on event: {event}")
         else:
+            logging.error(f"Invalid transition from {self.current_state} with event {event}")
             raise ValueError(f"Invalid transition from {self.current_state} with event {event}")
 
     def get_state(self):
@@ -27,7 +40,7 @@ state_machine_directory = './state_machines/'
 available_files = list_json_files(state_machine_directory)
 
 if not available_files:
-    print("No state machine files found!")
+    logging.error("No state machine files found!")
 else:
     print("Available state machines:")
     for idx, file in enumerate(available_files, 1):
@@ -39,6 +52,7 @@ else:
         choice_idx = int(choice) - 1
         if 0 <= choice_idx < len(available_files):
             chosen_file = available_files[choice_idx]
+            logging.info(f"User selected state machine file: {chosen_file}")
             transition_matrix = load_transition_matrix(os.path.join(state_machine_directory, chosen_file))
 
             if 'elevator' in chosen_file:
@@ -52,15 +66,14 @@ else:
                 events = []
 
             machine = StateMachine(initial_state=initial_state, transition_matrix=transition_matrix)
-            print(f"Initial State of {chosen_file}: {machine.get_state()}")
+            logging.info(f"Initial State: {machine.get_state()}")
 
             for event in events:
                 try:
                     machine.transition(event)
-                    print(f"After event '{event}', Current State: {machine.get_state()}")
                 except ValueError as e:
-                    print(e)
+                    logging.error(e)
         else:
-            print("Invalid choice! Please select a valid number.")
+            logging.error("Invalid choice! Please select a valid number.")
     except ValueError:
-        print("Invalid input! Please enter a number.")
+        logging.error("Invalid input! Please enter a number.")
