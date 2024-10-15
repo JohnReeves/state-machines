@@ -10,13 +10,23 @@ logging.basicConfig(level=logging.INFO,
                     ])
 
 class StateMachine:
-    def __init__(self, initial_state, transition_matrix):
-        self.current_state = initial_state
-        self.transition_matrix = transition_matrix
+    def __init__(self, file_path):
+        self.load_state_machine(file_path)
+
+    def load_state_machine(self, file_path):
+        """Loads the state machine configuration from a JSON file."""
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        self.current_state = data["initial_state"]
+        self.events = data["events"]
+        self.transition_matrix = data["transitions"]
+
+        logging.info(f"State machine loaded. Initial State: {self.current_state}")
 
     def transition(self, event):
+        """Handles state transitions based on an event."""
         logging.info(f"Received event: {event} in state: {self.current_state}")
-        
+
         if event in self.transition_matrix.get(self.current_state, {}):
             old_state = self.current_state
             self.current_state = self.transition_matrix[self.current_state][event]
@@ -26,19 +36,12 @@ class StateMachine:
             raise ValueError(f"Invalid transition from {self.current_state} with event {event}")
 
     def get_state(self):
+        """Returns the current state of the state machine."""
         return self.current_state
 
 
-def load_state_machine(file_path):
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    initial_state = data["initial_state"]
-    events = data["events"]
-    transitions = data["transitions"]
-    return initial_state, events, transitions
-
-
 def list_json_files(directory):
+    """Lists all JSON files in the specified directory."""
     return [file for file in os.listdir(directory) if file.endswith('.json')]
 
 
@@ -58,14 +61,11 @@ else:
         choice_idx = int(choice) - 1
         if 0 <= choice_idx < len(available_files):
             chosen_file = available_files[choice_idx]
+
             logging.info(f"User selected state machine file: {chosen_file}")
+            machine = StateMachine(file_path=os.path.join(state_machine_directory, chosen_file))
 
-            initial_state, events, transition_matrix = load_state_machine(os.path.join(state_machine_directory, chosen_file))
-            machine = StateMachine(initial_state=initial_state, transition_matrix=transition_matrix)
-
-            logging.info(f"Initial State: {machine.get_state()}")
-
-            for event in events:
+            for event in machine.events:
                 try:
                     machine.transition(event)
                 except ValueError as e:
@@ -74,4 +74,3 @@ else:
             logging.error("Invalid choice! Please select a valid number.")
     except ValueError:
         logging.error("Invalid input! Please enter a number.")
-
