@@ -1,0 +1,18 @@
+{
+  "Idle": {
+    "insert_money": "Selecting",
+    "out_of_service": "OutOfService"
+  },
+  "Selecting": {
+    "select_item": "Dispensing",
+    "cancel": "Idle",
+    "out_of_service": "OutOfService"
+  },
+  "Dispensing": {
+    "item_dispensed": "Idle",
+    "out_of_service": "OutOfService"
+  },
+  "OutOfService": {
+    "repair": "Idle"
+  }
+}
