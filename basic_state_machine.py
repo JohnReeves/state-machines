@@ -3,7 +3,6 @@ import logging
 import argparse
 import json
 
-# LoggerConfig class for setting up logging
 class LoggerConfig:
     """A class to configure logging for the application."""
     
@@ -19,10 +18,8 @@ class LoggerConfig:
             ]
         )
 
-# StateMachine class for managing state transitions
 class StateMachine:
     def __init__(self, file_path):
-        # Load the state machine configuration from the provided file
         self.load_state_machine(file_path)
 
     def load_state_machine(self, file_path):
@@ -37,18 +34,13 @@ class StateMachine:
 
     def transition(self, event):
         """Handles state transitions based on an event."""
-        # Log the received event and current state
         logging.info(f"Received event: {event} in state: {self.current_state}")
 
-        # Check if the current state and event combination exist in the transition matrix
         if event in self.transition_matrix.get(self.current_state, {}):
             old_state = self.current_state
             self.current_state = self.transition_matrix[self.current_state][event]
-
-            # Log the state transition
             logging.info(f"Transitioned from {old_state} to {self.current_state} on event: {event}")
         else:
-            # Log the invalid transition attempt
             logging.error(f"Invalid transition from {self.current_state} with event {event}")
             raise ValueError(f"Invalid transition from {self.current_state} with event {event}")
 
