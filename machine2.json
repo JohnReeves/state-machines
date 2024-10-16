@@ -1,0 +1,35 @@
+{
+    "initial_state": "waiting",
+    "events": ["start_other", "pause_other", "resume_other", "complete", "fail"],
+    "transitions": {
+        "waiting": {
+            "start_other": {
+                "target": "processing"
+            }
+        },
+        "processing": {
+            "pause_other": {
+                "target": "paused"
+            },
+            "complete": {
+                "target": "waiting"
+            },
+            "fail": {
+                "target": "error_state"
+            }
+        },
+        "paused": {
+            "resume_other": {
+                "target": "processing"
+            },
+            "complete": {
+                "target": "waiting"
+            }
+        },
+        "error_state": {
+            "reset": {
+                "target": "waiting"
+            }
+        }
+    }
+}
