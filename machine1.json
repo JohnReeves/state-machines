@@ -1,0 +1,50 @@
+{
+    "initial_state": "idle",
+    "events": ["start", "pause", "resume", "finish", "error"],
+    "transitions": {
+        "idle": {
+            "start": {
+                "target": "running",
+                "guard": "is_system_ready"
+            }
+        },
+        "running": {
+            "pause": {
+                "target": "paused"
+            },
+            "finish": {
+                "target": "idle"
+            },
+            "error": {
+                "target": "error_state"
+            }
+        },
+        "paused": {
+            "resume": {
+                "target": "running"
+            },
+            "finish": {
+                "target": "idle"
+            }
+        },
+        "error_state": {
+            "reset": {
+                "target": "idle"
+            }
+        }
+    },
+    "communications": {
+        "running": {
+            "finish": {
+                "target_machine": "machine2", 
+                "event": "start_other"
+            }
+        },
+        "paused": {
+            "resume": {
+                "target_machine": "machine2",
+                "event": "resume_other"
+            }
+        }
+    }
+}
