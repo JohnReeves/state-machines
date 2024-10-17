@@ -1,28 +1,31 @@
 {
-  "initial_state": "Idle",
-  "events": ["up", "stop", "door_open", "door_close", "down", "emergency_trigger", "reset"],
-  "transitions": {
-    "Idle": {
-      "up": "MovingUp",
-      "down": "MovingDown",
-      "door_open": "DoorOpen",
-      "emergency_trigger": "Emergency"
-    },
-    "MovingUp": {
-      "stop": "Idle",
-      "emergency_trigger": "Emergency"
-    },
-    "MovingDown": {
-      "stop": "Idle",
-      "emergency_trigger": "Emergency"
-    },
-    "DoorOpen": {
-      "door_close": "Idle",
-      "emergency_trigger": "Emergency"
-    },
-    "Emergency": {
-      "reset": "Idle"
+    "initial_state": "Start",
+    "events": ["up", "stop", "door_open", "door_close", "down", "emergency_trigger", "reset"],
+    "transitions": {
+        "Start":{
+            "start":"Idle"
+        },
+      "Idle": {
+        "up": "MovingUp",
+        "down": "MovingDown",
+        "door_open": "DoorOpen",
+        "emergency_trigger": "Emergency"
+      },
+      "MovingUp": {
+        "stop": "Idle",
+        "emergency_trigger": "Emergency"
+      },
+      "MovingDown": {
+        "stop": "Idle",
+        "emergency_trigger": "Emergency"
+      },
+      "DoorOpen": {
+        "door_close": "Idle",
+        "emergency_trigger": "Emergency"
+      },
+      "Emergency": {
+        "reset": "Idle"
+      }
     }
   }
-}
-
+  
