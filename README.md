@@ -27,12 +27,13 @@ assumes a directory structure
 * cmd user interface
 
 # Summary of cli commands 
-* list: Lists available state machine JSON files.
-* load <filename>: Loads a state machine from the specified JSON file.
-* event <event_name>: Triggers an event for the loaded state machine.
-* state: Displays the current state of the loaded state machine.
-* events: Shows the available transitions from the current state.
-* event_sequence: Lists the predefined event sequence from the JSON file.
-* run <event1,event2,...>: Runs a sequence of events provided by the user.
-* run --all: Runs all events from the predefined sequence in the JSON file.
+* list: Lists available state machine JSON files
+* load <filename>: Loads a state machine from the specified JSON file
+* event <event_name>: Triggers an event for the loaded state machine
+* state: Displays the current state of the loaded state machine
+* states: Displays all the states of the loaded state machine
+* events: Shows the available transitions from the current state
+* event_sequence: Lists the predefined event sequence from the JSON file
+* run <event1,event2,...>: Runs a sequence of events provided by the user
+* run --all: Runs all events from the predefined sequence in the JSON file
 * quit or exit: Exits the CLI.
