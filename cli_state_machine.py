@@ -35,7 +35,7 @@ class StateMachine:
             self.current_state = config["initial_state"]
             self.transition_matrix = config["transitions"]
             self.communications = config.get("communications", {})
-            self.event_sequence = config.get("event_sequence", [])  # Load event sequence
+            self.event_sequence = config.get("event_sequence", []) 
 
     def transition(self, event):
         """Handles state transitions based on an event."""
@@ -88,7 +88,39 @@ def list_json_files(directory):
     return [f for f in os.listdir(directory) if f.endswith('.json')]
 
 class StateMachineCLI(cmd.Cmd):
-    intro = "Welcome to the State Machine CLI. Type help or ? to list commands.\n"
+    intro = """
+    
+                                Welcome to the State Machine CLI
+                                ~~~~~~~~~~~~~~~*@*~~~~~~~~~~~~~~
+
+Utility commands
+    list: Displays the available state machine JSON files
+    load <filname>: Loads a state machine from the specified JSON file
+    load_two <filename1> <filname2>: Loads two state machines for running concurrently
+    quit or exit: Exits the CLI.
+
+State Machine commands
+    state: Displays the current state of the loaded state machine
+    states: Displays all the states of the loaded state machine
+    events: Displays the available transitions from the current state
+    run <event>: Runs an event provided by the you
+    run <event1,event2,...>: Runs a sequence of events provided by you
+    run --all: Runs all events from the predefined sequence in the JSON file
+    run_both: Runs the two loaded state machines concurrently with triggering events passed between them
+
+Logging levels
+    INFO: Valid state machine messages and transitions are displayed and stored as INFO logging messages
+    WARNING: Missing state machines are displayed and stored as WARNING logging messages
+    ERROR: Invalid state machine states, events and transitions are displayed and stored as ERROR logging messages
+
+                                Welcome to the State Machine CLI
+                                ~~~~~~~~~~~~~~~*@*~~~~~~~~~~~~~~
+
+While using the State Machine CLI
+    Type 'help' or '?' to list all the available commands
+    Type 'help <command>' to get a reminder of <command>'s syntax
+
+    """
     prompt = "(state-machine) "
     
     def __init__(self, directory, guard_functions=None):
