@@ -93,13 +93,13 @@ class StateMachineCLI(cmd.Cmd):
                                 Welcome to the State Machine CLI
                                 ~~~~~~~~~~~~~~~*@*~~~~~~~~~~~~~~
 
-Utility commands
+\033[4mUtility commands\033[0m
     list: Displays the available state machine JSON files
     load <filname>: Loads a state machine from the specified JSON file
     load_two <filename1> <filname2>: Loads two state machines for running concurrently
     quit or exit: Exits the CLI.
 
-State Machine commands
+\033[4mState Machine commands\033[0m
     state: Displays the current state of the loaded state machine
     states: Displays all the states of the loaded state machine
     events: Displays the available transitions from the current state
@@ -108,15 +108,15 @@ State Machine commands
     run --all: Runs all events from the predefined sequence in the JSON file
     run_both: Runs the two loaded state machines concurrently with triggering events passed between them
 
-Logging levels
-    INFO: Valid state machine messages and transitions are displayed and stored as INFO logging messages
+\033[4mLogging levels\033[0m
+    INFO: Valid state machine transitions are displayed and stored as INFO logging messages
+    ERROR: Invalid state machine transitions are displayed and stored as ERROR logging messages
     WARNING: Missing state machines are displayed and stored as WARNING logging messages
-    ERROR: Invalid state machine states, events and transitions are displayed and stored as ERROR logging messages
 
                                 Welcome to the State Machine CLI
                                 ~~~~~~~~~~~~~~~*@*~~~~~~~~~~~~~~
 
-While using the State Machine CLI
+\033[4mWhile using the State Machine CLI\033[0m
     Type 'help' or '?' to list all the available commands
     Type 'help <command>' to get a reminder of <command>'s syntax
 
