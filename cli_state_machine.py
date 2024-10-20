@@ -42,7 +42,6 @@ class StateMachine:
         logging.info(f"State machine '{self.name}' received event: {event} in state: {self.current_state}")
 
         current_transitions = self.transition_matrix.get(self.current_state, {})
-
         if event in current_transitions:
             transition = current_transitions[event]
             if isinstance(transition, str):
@@ -97,9 +96,13 @@ class StateMachineCLI(cmd.Cmd):
         self.directory = directory
         self.guard_functions = guard_functions if guard_functions else {}
         self.machine = None
+        self.machine1 = None
+        self.machine2 = None
 
     def do_list(self, arg):
-        """List all available state machine JSON files in the directory. Usage: list"""
+        """List all available state machine JSON files in the directory. 
+    Usage: list
+    """
         files = list_json_files(self.directory)
         if files:
             logging.info("Available state machine JSON files:")
@@ -110,41 +113,29 @@ class StateMachineCLI(cmd.Cmd):
         logging.info(f"Listed available state machine files in {self.directory}")
 
     def do_load(self, arg):
-        """Load a state machine from a JSON file. Usage: load <filename>"""
+        """Load a single state machine from a JSON file. 
+    Usage: load <filename>
+    """
         try:
             filename = arg.strip()
             if not filename:
                 logging.warning("No filename provided. Please provide a valid filename.")
                 return
+
             filepath = os.path.join(self.directory, filename)
             if not os.path.isfile(filepath):
                 logging.error(f"File {filename} does not exist in {self.directory}.")
                 return
-            
+
             self.machine = StateMachine(filename, filepath, self.guard_functions)
             logging.info(f"State machine '{filename}' loaded successfully.")
         except Exception as e:
             logging.error(f"Failed to load state machine: {e}")
 
-    def do_event(self, arg):
-        """Send an event to the current state machine. Usage: event <event_name>"""
-        if not self.machine:
-            logging.warning("No state machine is loaded. Use the 'load' command first.")
-            return
-        
-        event = arg.strip()
-        if not event:
-            logging.warning("No event provided. Please provide a valid event.")
-            return
-        
-        try:
-            self.machine.transition(event)
-            logging.info(f"Event '{event}' processed. Current state: {self.machine.current_state}")
-        except Exception as e:
-            logging.error(f"Failed to process event '{event}': {e}")
-
     def do_state(self, arg):
-        """Display the current state of the loaded state machine. Usage: state"""
+        """Display the current state of the loaded state machine. 
+    Usage: state
+    """
         if not self.machine:
             logging.warning("No state machine is loaded.")
             return
@@ -152,7 +143,9 @@ class StateMachineCLI(cmd.Cmd):
         logging.info(f"Current state: {self.machine.current_state}")
 
     def do_events(self, arg):
-        """Show available transitions for the current state. Usage: events"""
+        """Show available transitions for the current state. 
+    Usage: events
+    """
         if not self.machine:
             logging.warning("No state machine is loaded.")
             return
@@ -164,19 +157,10 @@ class StateMachineCLI(cmd.Cmd):
         else:
             logging.warning(f"No available transitions from state '{state}'.")
 
-    def do_event_sequence(self, arg):
-        """List the predefined event sequence from the JSON file. Usage: event_sequence"""
-        if not self.machine:
-            logging.warning("No state machine is loaded.")
-            return
-        
-        if self.machine.event_sequence:
-            logging.info(f"Predefined event sequence: {', '.join(self.machine.event_sequence)}")
-        else:
-            logging.warning("No predefined event sequence found in the JSON file.")
-
     def do_states(self, arg):
-        """List all states in the loaded state machine. Usage: states"""
+        """List all states in the loaded state machine. 
+    Usage: states
+    """
         if not self.machine:
             logging.warning("No state machine is loaded.")
             return
@@ -188,7 +172,12 @@ class StateMachineCLI(cmd.Cmd):
             logging.warning("No states defined in the state machine.")
 
     def do_run(self, arg):
-        """Run a sequence of events or all events from the JSON file. Usage: run <event1,event2,...> or run --all"""
+        """Run an event, a sequence of events or all events from the JSON file. 
+    Usage: 
+    run <event>
+    run <event1,event2,...> or 
+    run --all
+    """
         if not self.machine:
             logging.warning("No state machine is loaded. Use the 'load' command first.")
             return
@@ -204,20 +193,87 @@ class StateMachineCLI(cmd.Cmd):
             if not events:
                 logging.warning("No events provided. Please provide a sequence of events to run.")
                 return
-
             try:
                 self.machine.run_sequence(events)
                 logging.info(f"Ran sequence of events: {', '.join(events)}")
             except Exception as e:
                 logging.error(f"Failed to run the event sequence: {e}")
 
+    def do_load_two(self, arg):
+        """Load two state machines from JSON files. 
+    Usage: 
+    load_two <filename1> <filename2>
+    """
+        filenames = arg.strip().split()
+        if len(filenames) != 2:
+            logging.warning("Please provide two filenames. Usage: load_two <filename1> <filename2>")
+            return
+        
+        filepath1 = os.path.join(self.directory, filenames[0])
+        filepath2 = os.path.join(self.directory, filenames[1])
+
+        if not os.path.isfile(filepath1) or not os.path.isfile(filepath2):
+            logging.error(f"One or both files do not exist: {filenames[0]}, {filenames[1]}")
+            return
+        
+        self.machine1 = StateMachine(filenames[0], filepath1, self.guard_functions)
+        self.machine2 = StateMachine(filenames[1], filepath2, self.guard_functions)
+        logging.info(f"State machines '{filenames[0]}' and '{filenames[1]}' loaded successfully.")
+    
+    def do_run_both(self, arg):
+        """Run two state machines concurrently and pass events between them. 
+    Usage: run_both
+    """
+        if not self.machine1 or not self.machine2:
+            logging.warning("Both state machines need to be loaded. Use 'load_two' to load two state machines.")
+            return
+        
+        logging.info("Starting to run both state machines concurrently.")
+        
+        asyncio.run(self.run_both_machines())
+
+    async def run_both_machines(self):
+        """Run both state machines concurrently and allow them to communicate."""
+        task1 = asyncio.create_task(self.run_machine(self.machine1))
+        task2 = asyncio.create_task(self.run_machine(self.machine2))
+        
+        # Run both tasks concurrently
+        await asyncio.gather(task1, task2)
+
+    async def run_machine(self, machine):
+        """Run a single state machine with asyncio."""
+        logging.info(f"Running state machine {machine.name}")
+        
+        for event in machine.event_sequence:
+            await asyncio.sleep(1)  # Simulate delay between events
+            logging.info(f"Processing event {event} in {machine.name}")
+            machine.transition(event)
+            
+            # Check if an event should trigger another event in the other machine
+            if machine == self.machine1 and event == "trigger_machine2_event":
+                logging.info("Triggering event in machine 2 from machine 1.")
+                await self.run_event_in_machine(self.machine2, "event_from_machine1")
+            elif machine == self.machine2 and event == "trigger_machine1_event":
+                logging.info("Triggering event in machine 1 from machine 2.")
+                await self.run_event_in_machine(self.machine1, "event_from_machine2")
+
+    async def run_event_in_machine(self, machine, event):
+        """Run a specific event in a state machine asynchronously."""
+        await asyncio.sleep(0.5)  # Simulate small delay
+        logging.info(f"Running event {event} in {machine.name}")
+        machine.transition(event)
+
     def do_quit(self, arg):
-        """Quit the CLI. Usage: quit"""
+        """Quit the CLI. 
+    Usage: quit
+    """
         logging.info("Exiting the CLI.")
         return True
 
     def do_exit(self, arg):
-        """Exit the CLI. Usage: exit"""
+        """Exit the CLI. 
+    Usage: exit
+    """
         return self.do_quit(arg)
 
 def parse_args_and_run_cli():
