@@ -32,10 +32,11 @@ class StateMachine:
         """Load the state machine configuration from a JSON file."""
         with open(self.config_file, 'r') as f:
             config = json.load(f)
-            self.current_state = config["initial_state"]
             self.transition_matrix = config["transitions"]
             self.communications = config.get("communications", {})
             self.event_sequence = config.get("event_sequence", []) 
+            self.initial_state = config.get("initial_state", None)  # Store the initial state
+            self.current_state = config["initial_state"]
 
     def transition(self, event):
         """Handles state transitions based on an event."""
@@ -63,6 +64,11 @@ class StateMachine:
 
         else:
             logging.error(f"Invalid transition for state machine '{self.name}' from {self.current_state} with event {event}")
+ 
+    def reset(self):
+        """Reset the state machine to its initial state."""
+        self.current_state = self.initial_state
+        logging.info(f"State machine '{self.name}' reset to initial state '{self.initial_state}'.")
 
     def run_sequence(self, events):
         """Run a sequence of events for the state machine."""
@@ -103,6 +109,7 @@ class StateMachineCLI(cmd.Cmd):
     state: Displays the current state of the loaded state machine
     states: Displays all the states of the loaded state machine
     events: Displays the available transitions from the current state
+    reset: Returns the state machine to its initial state
     run <event>: Runs an event provided by the you
     run <event1,event2,...>: Runs a sequence of events provided by you
     run --all: Runs all events from the predefined sequence in the JSON file
@@ -230,6 +237,14 @@ class StateMachineCLI(cmd.Cmd):
                 logging.info(f"Ran sequence of events: {', '.join(events)}")
             except Exception as e:
                 logging.error(f"Failed to run the event sequence: {e}")
+
+    def do_reset(self, arg):
+        """Reset the currently loaded state machine to its initial state. Usage: reset"""
+        if not self.machine:
+            logging.warning("No state machine is loaded. Use the 'load' command first.")
+            return
+        
+        self.machine.reset()
 
     def do_load_two(self, arg):
         """Load two state machines from JSON files. 
