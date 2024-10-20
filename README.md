@@ -29,11 +29,17 @@ assumes a directory structure
 # Summary of cli commands 
 * list: Lists available state machine JSON files
 * load <filename>: Loads a state machine from the specified JSON file
-* event <event_name>: Triggers an event for the loaded state machine
+* load_two <filename1> <filename2>: Loads two state machines for running concurrently
 * state: Displays the current state of the loaded state machine
 * states: Displays all the states of the loaded state machine
 * events: Shows the available transitions from the current state
-* event_sequence: Lists the predefined event sequence from the JSON file
+* run <event>: Runs an event provided by the user
 * run <event1,event2,...>: Runs a sequence of events provided by the user
 * run --all: Runs all events from the predefined sequence in the JSON file
+* run_both: Runs the two loaded state machines concurrently with triggering events passed between them
 * quit or exit: Exits the CLI.
+
+
+
+
+
