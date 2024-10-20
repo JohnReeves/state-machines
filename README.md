@@ -33,6 +33,7 @@ assumes a directory structure
 * state: Displays the current state of the loaded state machine
 * states: Displays all the states of the loaded state machine
 * events: Shows the available transitions from the current state
+* reset: Returns the state machine to its initial state
 * run <event>: Runs an event provided by the user
 * run <event1,event2,...>: Runs a sequence of events provided by the user
 * run --all: Runs all events from the predefined sequence in the JSON file
