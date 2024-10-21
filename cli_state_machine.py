@@ -70,6 +70,27 @@ class StateMachine:
         self.current_state = self.initial_state
         logging.info(f"State machine '{self.name}' reset to initial state '{self.initial_state}'.")
 
+    def goto(self, state):
+        """Set the current state directly to a specified state."""
+        if state in self.transition_matrix:
+            self.current_state = state
+            self.state_history.append(state)  # Append the new state to history
+            logging.info(f"State machine '{self.name}' set to state '{state}' using goto command.")
+        else:
+            logging.error(f"State '{state}' does not exist in the state machine '{self.name}'.")
+
+    def goback(self, steps):
+        """Revert to an earlier state by the given number of steps."""
+        if steps >= len(self.state_history):
+            logging.warning(f"Cannot go back {steps} steps. Reverting to initial state.")
+            self.current_state = self.initial_state
+            self.state_history = [self.initial_state]
+        else:
+            # Revert by popping the history and setting the current state
+            self.current_state = self.state_history[-(steps + 1)]
+            self.state_history = self.state_history[:-(steps)]
+            logging.info(f"Reverted state machine '{self.name}' back by {steps} steps to state '{self.current_state}'.")
+
     def run_sequence(self, events):
         """Run a sequence of events for the state machine."""
         logging.info(f"Running event sequence for state machine '{self.name}'")
@@ -170,6 +191,29 @@ class StateMachineCLI(cmd.Cmd):
             logging.info(f"State machine '{filename}' loaded successfully.")
         except Exception as e:
             logging.error(f"Failed to load state machine: {e}")
+
+    def do_goto(self, arg):
+        """Set the state machine directly to a specific state. Usage: goto <state>"""
+        if not self.machine1:
+            logging.warning("No state machine is loaded. Use the 'load' command first.")
+            return
+        state = arg.strip()
+        if not state:
+            logging.warning("No state provided. Usage: goto <state>")
+            return
+        self.machine.goto(state)
+
+    def do_goback(self, arg):
+        """Revert the state machine by a number of steps. Usage: goback <n>"""
+        if not self.machine1:
+            logging.warning("No state machine is loaded. Use the 'load' command first.")
+            return
+        try:
+            steps = int(arg)
+        except ValueError:
+            logging.error("Please provide a valid number for goback.")
+            return
+        self.machine.goback(steps)
 
     def do_state(self, arg):
         """Display the current state of the loaded state machine. 
