@@ -26,6 +26,7 @@ class StateMachine:
         self.transition_matrix = None
         self.communications = None
         self.event_sequence = None
+        self.state_history = []
         self.load_state_machine()
 
     def load_state_machine(self):
@@ -36,6 +37,7 @@ class StateMachine:
             self.communications = config.get("communications", {})
             self.event_sequence = config.get("event_sequence", []) 
             self.initial_state = config.get("initial_state", None)  # Store the initial state
+            self.state_history = [self.initial_state]
             self.current_state = config["initial_state"]
 
     def transition(self, event):
@@ -59,6 +61,7 @@ class StateMachine:
                     return
 
             old_state = self.current_state
+            self.state_history.append(old_state)
             self.current_state = transition["target"]
             logging.info(f"State machine '{self.name}' transitioned from {old_state} to {self.current_state} on event: {event}")
 
@@ -131,6 +134,8 @@ class StateMachineCLI(cmd.Cmd):
     states: Displays all the states of the loaded state machine
     events: Displays the available transitions from the current state
     reset: Returns the state machine to its initial state
+    goto <state>: Sets the current state to the named state
+    goback <n>: Rewinds the sequence of states by 'n'
     run <event>: Runs an event provided by the you
     run <event1,event2,...>: Runs a sequence of events provided by you
     run --all: Runs all events from the predefined sequence in the JSON file
@@ -194,7 +199,7 @@ class StateMachineCLI(cmd.Cmd):
 
     def do_goto(self, arg):
         """Set the state machine directly to a specific state. Usage: goto <state>"""
-        if not self.machine1:
+        if not self.machine:
             logging.warning("No state machine is loaded. Use the 'load' command first.")
             return
         state = arg.strip()
@@ -205,7 +210,7 @@ class StateMachineCLI(cmd.Cmd):
 
     def do_goback(self, arg):
         """Revert the state machine by a number of steps. Usage: goback <n>"""
-        if not self.machine1:
+        if not self.machine:
             logging.warning("No state machine is loaded. Use the 'load' command first.")
             return
         try:
