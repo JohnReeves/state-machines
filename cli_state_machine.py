@@ -1,3 +1,6 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import configparser
 import argparse
 import asyncio
 import json
@@ -26,6 +29,7 @@ class StateMachine:
         self.communications = None
         self.event_sequence = None
         self.state_history = []
+        self.data = {}
         self.guard_functions = guard_functions if guard_functions else {}
         self.load_state_machine()
 
@@ -33,6 +37,7 @@ class StateMachine:
         """Load the state machine configuration from a JSON file."""
         with open(self.config_file, 'r') as f:
             config = json.load(f)
+            self.data = config
             self.transition_matrix = config["transitions"]
             self.communications = config.get("communications", {})
             self.event_sequence = config.get("event_sequence", []) 
@@ -127,6 +132,7 @@ class StateMachineCLI(cmd.Cmd):
 \033[4mUtility commands\033[0m
     list: Displays the available state machine JSON files
     load <filname>: Loads a state machine from the specified JSON file
+    edit: Use the embedded text editor to edit the loaded state machine
     load_two <filename1> <filname2>: Loads two state machines for running concurrently
     quit or exit: Exits the CLI.
 
@@ -198,6 +204,47 @@ class StateMachineCLI(cmd.Cmd):
             logging.info(f"State machine '{filename}' loaded successfully.")
         except Exception as e:
             logging.error(f"Failed to load state machine: {e}")
+
+
+    def do_edit(self, arg):
+        """Open the state machine editor to create or modify a state machine."""
+        if self.machine:
+            ini_content = self.convert_json_to_ini(self.machine.data)
+            editor = StateMachineEditor(self, ini_content) 
+        else:
+            editor = StateMachineEditor(self)  
+        editor.run()
+
+    def convert_json_to_ini(self, json_data):
+        """Convert the loaded JSON state machine data into INI-like format."""
+        ini_content = []
+        if 'states' in json_data:
+            ini_content.append("[states]")
+            for state, value in json_data['states'].items():
+                ini_content.append(f"{state} = {value}")
+        
+        if 'transitions' in json_data:
+            ini_content.append("\n[transitions]")
+            for from_state, events in json_data['transitions'].items():
+                for event, to_state in events.items():
+                    ini_content.append(f"{from_state} = {event} -> {to_state}")
+        
+        return "\n".join(ini_content)
+    
+    def load_json_state_machine(self, file_path):
+        """Load the state machine from the specified JSON file."""
+        if not os.path.isfile(file_path):
+            logging.error(f"File {file_path} does not exist.")
+            return
+
+        with open(file_path, 'r') as json_file:
+            state_machine_data = json.load(json_file)
+        
+        # Load the JSON data into the StateMachine object
+        self.machine = StateMachine(os.path.basename(file_path), file_path, self.guard_functions)
+        self.machine.data = state_machine_data
+        logging.info(f"State machine '{file_path}' loaded successfully.")
+
 
     def do_goto(self, arg):
         """Set the state machine directly to a specific state. Usage: goto <state>"""
@@ -383,6 +430,80 @@ class StateMachineCLI(cmd.Cmd):
     Usage: exit
     """
         return self.do_quit(arg)
+
+
+class StateMachineEditor:
+    def __init__(self, cli_instance, ini_content=None):
+        self.cli_instance = cli_instance
+        self.root = tk.Tk()
+        self.root.title("State Machine Editor")
+        
+        # Text widget for editing
+        self.text = tk.Text(self.root, wrap=tk.WORD)
+        self.text.pack(expand=True, fill=tk.BOTH)
+        
+        # Pre-populate with the current state machine's INI content if available
+        if ini_content:
+            self.text.insert(tk.END, ini_content)
+        
+        # Button Frame
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Buttons for Load, Save, Edit
+        load_button = tk.Button(button_frame, text="Load", command=self.load_ini_file)
+        save_button = tk.Button(button_frame, text="Save as JSON", command=self.save_as_json)
+        edit_button = tk.Button(button_frame, text="Edit", command=self.edit_state_machine)
+
+        load_button.pack(side=tk.LEFT)
+        save_button.pack(side=tk.LEFT)
+        edit_button.pack(side=tk.LEFT)
+
+    def load_ini_file(self):
+        """Load an INI state machine file into the text editor."""
+        file_path = filedialog.askopenfilename(defaultextension=".ini", filetypes=[("INI Files", "*.ini"), ("All Files", "*.*")])
+        if not file_path:
+            return
+        with open(file_path, 'r') as file:
+            content = file.read()
+            self.text.delete(1.0, tk.END)  # Clear the text widget
+            self.text.insert(tk.END, content)  # Insert the INI content
+        messagebox.showinfo("Load", f"Loaded {file_path}")
+
+    def save_as_json(self):
+        """Save the contents of the text editor in JSON format."""
+        content = self.text.get(1.0, tk.END)
+        config = configparser.ConfigParser()
+        try:
+            config.read_string(content)
+        except configparser.Error as e:
+            messagebox.showerror("Error", f"Failed to parse INI: {str(e)}")
+            return
+        
+        # Convert INI content to JSON format
+        state_machine_dict = {section: dict(config.items(section)) for section in config.sections()}
+        
+        # Save JSON
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")])
+        if not file_path:
+            return
+        with open(file_path, 'w') as json_file:
+            json.dump(state_machine_dict, json_file, indent=4)
+        
+        messagebox.showinfo("Save", f"Saved as {file_path}")
+
+    def edit_state_machine(self):
+        """Load the JSON file into the CLI as a state machine."""
+        file_path = filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")])
+        if not file_path:
+            return
+        
+        # Load the JSON file as a state machine in the CLI
+        self.cli_instance.load_json_state_machine(file_path)
+        messagebox.showinfo("Edit", f"Loaded {file_path} into the state machine")
+
+    def run(self):
+        self.root.mainloop()
 
 def parse_args_and_run_cli():
     parser = argparse.ArgumentParser(description="Run the State Machine CLI to interactively trigger events.")
