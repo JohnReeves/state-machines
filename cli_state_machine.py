@@ -75,24 +75,23 @@ class StateMachine:
 
     def goto(self, state):
         """Set the current state directly to a specified state."""
-        if state in self.transition_matrix:
-            self.current_state = state
-            self.state_history.append(state)  # Append the new state to history
-            logging.info(f"State machine '{self.name}' set to state '{state}' using goto command.")
-        else:
+        if state not in self.transition_matrix:
             logging.error(f"State '{state}' does not exist in the state machine '{self.name}'.")
+            return
+
+        logging.info(f"State machine '{self.name}' set to state '{state}' using goto command.")
+        self.current_state = state
+        self.state_history.append(state)
 
     def goback(self, steps):
         """Revert to an earlier state by the given number of steps."""
-        if steps >= len(self.state_history):
-            logging.warning(f"Cannot go back {steps} steps. Reverting to initial state.")
-            self.current_state = self.initial_state
-            self.state_history = [self.initial_state]
-        else:
-            # Revert by popping the history and setting the current state
-            self.current_state = self.state_history[-(steps + 1)]
-            self.state_history = self.state_history[:-(steps)]
-            logging.info(f"Reverted state machine '{self.name}' back by {steps} steps to state '{self.current_state}'.")
+        if steps > len(self.state_history)-1:
+            logging.warning(f"{len(self.state_history)-1} states available in the history.")
+            return
+
+        logging.info(f"Reverted state machine '{self.name}' back by {steps} steps to state '{self.current_state}'.")
+        self.current_state = self.state_history[-(steps + 1)]
+        self.state_history = self.state_history[:-(steps)]
 
     def run_sequence(self, events):
         """Run a sequence of events for the state machine."""
@@ -103,11 +102,13 @@ class StateMachine:
 
     def run_all(self):
         """Run the predefined sequence of events from the JSON file."""
-        if self.event_sequence:
-            logging.info(f"Running all events: {', '.join(self.event_sequence)}")
-            self.run_sequence(self.event_sequence)
-        else:
+        if len(self.event_sequence) == 0:
             logging.warning("No predefined event sequence found.")
+            return
+
+        logging.info(f"Running all events: {', '.join(self.event_sequence)}")
+        self.run_sequence(self.event_sequence)
+
 
 # Example of guard functions
 def is_system_ready():
