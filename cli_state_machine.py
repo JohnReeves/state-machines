@@ -21,12 +21,12 @@ class StateMachine:
     def __init__(self, name, config_file, guard_functions=None):
         self.name = name
         self.config_file = config_file
-        self.guard_functions = guard_functions if guard_functions else {}
         self.current_state = None
         self.transition_matrix = None
         self.communications = None
         self.event_sequence = None
         self.state_history = []
+        self.guard_functions = guard_functions if guard_functions else {}
         self.load_state_machine()
 
     def load_state_machine(self):
@@ -79,9 +79,9 @@ class StateMachine:
             logging.error(f"State '{state}' does not exist in the state machine '{self.name}'.")
             return
 
-        logging.info(f"State machine '{self.name}' set to state '{state}' using goto command.")
         self.current_state = state
         self.state_history.append(state)
+        logging.info(f"State machine '{self.name}' set to state '{state}' using goto command.")
 
     def goback(self, steps):
         """Revert to an earlier state by the given number of steps."""
@@ -89,9 +89,9 @@ class StateMachine:
             logging.warning(f"{len(self.state_history)-1} states available in the history.")
             return
 
-        logging.info(f"Reverted state machine '{self.name}' back by {steps} steps to state '{self.current_state}'.")
         self.current_state = self.state_history[-(steps + 1)]
         self.state_history = self.state_history[:-(steps)]
+        logging.info(f"Reverted state machine '{self.name}' back by {steps} steps to state '{self.current_state}'.")
 
     def run_sequence(self, events):
         """Run a sequence of events for the state machine."""
@@ -134,6 +134,7 @@ class StateMachineCLI(cmd.Cmd):
     state: Displays the current state of the loaded state machine
     states: Displays all the states of the loaded state machine
     events: Displays the available transitions from the current state
+    history: Displays the states that have been visited
     reset: Returns the state machine to its initial state
     goto <state>: Sets the current state to the named state
     goback <n>: Rewinds the sequence of states by 'n'
@@ -230,6 +231,16 @@ class StateMachineCLI(cmd.Cmd):
             return
 
         logging.info(f"Current state: {self.machine.current_state}")
+
+    def do_history(self, arg):
+        """Display the current state of the loaded state machine. 
+    Usage: state
+    """
+        if not self.machine:
+            logging.warning("No state machine is loaded.")
+            return
+
+        logging.info(f"Current history: {self.machine.state_history}")
 
     def do_events(self, arg):
         """Show available transitions for the current state. 
