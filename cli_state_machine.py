@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import configparser
+import math
 
 import argparse
 import asyncio
@@ -134,6 +135,7 @@ class StateMachineCLI(cmd.Cmd):
     list: Displays the available state machine JSON files
     load <filname>: Loads a state machine from the specified JSON file
     edit: Use the embedded text editor to edit the loaded state machine
+    draw_graph: Display the loaded state machine as a graph
     load_two <filename1> <filname2>: Loads two state machines for running concurrently
     quit or exit: Exits the CLI.
 
@@ -206,6 +208,13 @@ class StateMachineCLI(cmd.Cmd):
         except Exception as e:
             logging.error(f"Failed to load state machine: {e}")
 
+    def do_draw_graph(self, arg):
+        """Draw the loaded state machine as a graph"""
+        if self.machine:
+            graph = StateMachineGraph(self.machine.data)
+            graph.run()
+        else:
+            print("No state machine loaded. Use 'load <filename>' to load one.")
 
     def do_edit(self, arg):
         """Open the state machine editor to create or modify a state machine."""
@@ -469,7 +478,7 @@ class StateMachineEditor:
         self.cli_instance = cli_instance
         self.root = tk.Tk()
         self.root.title("State Machine Editor")
-        self.root.minsize(100, 600)
+        self.root.minsize(30, 800)
         
         # Text widget for editing
         self.text = tk.Text(self.root, wrap=tk.WORD)
@@ -538,6 +547,72 @@ class StateMachineEditor:
     def run(self):
         self.root.mainloop()
 
+
+import tkinter as tk
+import math
+
+class StateMachineGraph:
+    def __init__(self, json_data):
+        self.json_data = json_data
+        self.root = tk.Tk()
+        self.root.title("State Machine Graph")
+
+        # Canvas for drawing
+        self.canvas = tk.Canvas(self.root, width=800, height=600, bg="white")
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Parameters for drawing
+        self.state_radius = 40  # Radius for the oval representing a state
+        self.states_positions = {}
+
+        self.draw_graph()
+
+    def draw_graph(self):
+        """Main function to draw the entire graph."""
+        transitions = self.json_data.get('transitions', {})
+        states = list(transitions.keys())
+
+        self.position_states_in_circle(states)
+
+        for state, (x, y) in self.states_positions.items():
+            self.draw_state_oval(x, y, state)
+
+        for from_state, events in transitions.items():
+            from_x, from_y = self.states_positions[from_state]
+            for event, to_state in events.items():
+                to_x, to_y = self.states_positions[to_state]
+                self.draw_transition(from_x, from_y, to_x, to_y, event)
+
+    def position_states_in_circle(self, states):
+        """Position states in a circle for a basic layout."""
+        center_x, center_y = 400, 300  # Center of the canvas
+        radius = 200 
+
+        num_states = len(states)
+        angle_step = 2 * math.pi / num_states
+
+        for i, state in enumerate(states):
+            angle = i * angle_step
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+            self.states_positions[state] = (x, y)
+
+    def draw_state_oval(self, x, y, state_name):
+        """Draw an oval for the state and place its name in the center."""
+        r = self.state_radius
+        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="lightblue", outline="black")
+        self.canvas.create_text(x, y, text=state_name, font=("Arial", 14))
+
+    def draw_transition(self, from_x, from_y, to_x, to_y, event_name):
+        """Draw a line with an arrow from one state to another, labeled with an event."""
+        self.canvas.create_line(from_x, from_y, to_x, to_y, arrow=tk.LAST, fill="black")
+
+        mid_x = (from_x + to_x) / 2
+        mid_y = (from_y + to_y) / 2
+        self.canvas.create_text(mid_x, mid_y - 10, text=event_name, font=("Arial", 10, "italic"))
+
+    def run(self):
+        self.root.mainloop()
 
 
 def parse_args_and_run_cli():
