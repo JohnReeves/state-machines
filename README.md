@@ -24,13 +24,18 @@ assumes a directory structure
 
 `cli_state_machine.py` has
 * as above
-* cmd user interface
+* cmd user interface 
+* text editor to display & edit the state machine in INI format
+* graph view to display the state machine in a graphical form
 
 # Summary of cli commands 
 * list: Lists available state machine JSON files
 * load <filename>: Loads a state machine from the specified JSON file
 * load_two <filename1> <filename2>: Loads two state machines for running concurrently
 * state: Displays the current state of the loaded state machine
+* goto <state>: sets the initial state
+* goback <n>: rewind the list of transitions
+* history: Displays the list of states during this run 
 * states: Displays all the states of the loaded state machine
 * events: Shows the available transitions from the current state
 * reset: Returns the state machine to its initial state
