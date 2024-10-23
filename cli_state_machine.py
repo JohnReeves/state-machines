@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import configparser
+
 import argparse
 import asyncio
 import json
@@ -216,21 +217,50 @@ class StateMachineCLI(cmd.Cmd):
         editor.run()
 
     def convert_json_to_ini(self, json_data):
-        """Convert the loaded JSON state machine data into INI-like format."""
+        """Convert the loaded JSON state machine data into INI format with state subsections."""
         ini_content = []
-        if 'states' in json_data:
+
+        # Write the initial state under the [states] section
+        if 'states' in json_data and 'initial' in json_data['states']:
             ini_content.append("[states]")
-            for state, value in json_data['states'].items():
-                ini_content.append(f"{state} = {value}")
-        
+            ini_content.append(f"initial = {json_data['states']['initial']}\n")
+
+        # Write each state's transitions as subsections
         if 'transitions' in json_data:
-            ini_content.append("\n[transitions]")
-            for from_state, events in json_data['transitions'].items():
+            for state, events in json_data['transitions'].items():
+                ini_content.append(f"[{state}]")
                 for event, to_state in events.items():
-                    ini_content.append(f"{from_state} = {event} -> {to_state}")
-        
+                    ini_content.append(f"{event} = {to_state}")
+                ini_content.append("")  # Blank line for readability
+
         return "\n".join(ini_content)
     
+    def convert_ini_to_json(self, ini_content):
+        """Convert INI content with states and subsections for events into JSON format."""
+        config = configparser.ConfigParser()
+        config.read_string(ini_content)
+
+        state_machine_dict = {
+            "states": {},
+            "transitions": {}
+        }
+
+        # Process the initial state
+        if 'states' in config:
+            if 'initial' in config['states']:
+                state_machine_dict['states']['initial'] = config['states']['initial']
+
+        # Process transitions for each state
+        for state in config.sections():
+            if state != 'states':  # Ignore the general 'states' section
+                transitions = {}
+                for event, next_state in config.items(state):
+                    transitions[event] = next_state
+                state_machine_dict['transitions'][state] = transitions
+
+        return state_machine_dict
+
+
     def load_json_state_machine(self, file_path):
         """Load the state machine from the specified JSON file."""
         if not os.path.isfile(file_path):
@@ -432,11 +462,14 @@ class StateMachineCLI(cmd.Cmd):
         return self.do_quit(arg)
 
 
+
+
 class StateMachineEditor:
     def __init__(self, cli_instance, ini_content=None):
         self.cli_instance = cli_instance
         self.root = tk.Tk()
         self.root.title("State Machine Editor")
+        self.root.minsize(100, 600)
         
         # Text widget for editing
         self.text = tk.Text(self.root, wrap=tk.WORD)
@@ -504,6 +537,8 @@ class StateMachineEditor:
 
     def run(self):
         self.root.mainloop()
+
+
 
 def parse_args_and_run_cli():
     parser = argparse.ArgumentParser(description="Run the State Machine CLI to interactively trigger events.")
