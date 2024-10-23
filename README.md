@@ -29,21 +29,34 @@ assumes a directory structure
 * graph view to display the state machine in a graphical form
 
 # Summary of cli commands 
-* list: Lists available state machine JSON files
-* load <filename>: Loads a state machine from the specified JSON file
-* load_two <filename1> <filename2>: Loads two state machines for running concurrently
-* state: Displays the current state of the loaded state machine
-* goto <state>: sets the initial state
-* goback <n>: rewind the list of transitions
-* history: Displays the list of states during this run 
-* states: Displays all the states of the loaded state machine
-* events: Shows the available transitions from the current state
-* reset: Returns the state machine to its initial state
-* run <event>: Runs an event provided by the user
-* run <event1,event2,...>: Runs a sequence of events provided by the user
-* run --all: Runs all events from the predefined sequence in the JSON file
-* run_both: Runs the two loaded state machines concurrently with triggering events passed between them
-* quit or exit: Exits the CLI.
+                                Welcome to the State Machine CLI
+                                ~~~~~~~~~~~~~~~*@*~~~~~~~~~~~~~~
+
+Utility commands
+    list: Displays the available state machine JSON files
+    load <filname>: Loads a state machine from the specified JSON file
+    edit: Use the embedded text editor to edit the loaded state machine
+    draw_graph: Display the loaded state machine as a graph
+    load_two <filename1> <filname2>: Loads two state machines for running concurrently
+    quit or exit: Exits the CLI.
+
+State Machine commands
+    state: Displays the current state of the loaded state machine
+    states: Displays all the states of the loaded state machine
+    events: Displays the available transitions from the current state
+    history: Displays the states that have been visited
+    reset: Returns the state machine to its initial state
+    goto <state>: Sets the current state to the named state
+    goback <n>: Rewinds the sequence of states by 'n'
+    run <event>: Runs an event provided by the you
+    run <event1,event2,...>: Runs a sequence of events provided by you
+    run --all: Runs all events from the predefined sequence in the JSON file
+    run_both: Runs the two loaded state machines concurrently with triggering events passed between them
+
+Logging levels
+    INFO: Valid state machine transitions are displayed and stored as INFO logging messages
+    ERROR: Invalid state machine transitions are displayed and stored as ERROR logging messages
+    WARNING: Missing state machines are displayed and stored as WARNING logging messages
 
 
 
