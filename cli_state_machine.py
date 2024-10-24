@@ -134,8 +134,8 @@ class StateMachineCLI(cmd.Cmd):
 \033[4mUtility commands\033[0m
     list: Displays the available state machine JSON files
     load <filname>: Loads a state machine from the specified JSON file
-    edit: Use the embedded text editor to edit the loaded state machine
-    draw_graph: Display the loaded state machine as a graph
+    edit: Edits the loaded state machine using the embedded text editor
+    graph: Displays the loaded state machine as a graph
     load_two <filename1> <filname2>: Loads two state machines for running concurrently
     quit or exit: Exits the CLI.
 
@@ -208,7 +208,7 @@ class StateMachineCLI(cmd.Cmd):
         except Exception as e:
             logging.error(f"Failed to load state machine: {e}")
 
-    def do_draw_graph(self, arg):
+    def do_graph(self, arg):
         """Draw the loaded state machine as a graph"""
         if self.machine:
             graph = StateMachineGraph(self.machine.data)
@@ -431,7 +431,6 @@ class StateMachineCLI(cmd.Cmd):
         task1 = asyncio.create_task(self.run_machine(self.machine1))
         task2 = asyncio.create_task(self.run_machine(self.machine2))
         
-        # Run both tasks concurrently
         await asyncio.gather(task1, task2)
 
     async def run_machine(self, machine):
@@ -471,8 +470,6 @@ class StateMachineCLI(cmd.Cmd):
         return self.do_quit(arg)
 
 
-
-
 class StateMachineEditor:
     def __init__(self, cli_instance, ini_content=None):
         self.cli_instance = cli_instance
@@ -480,19 +477,15 @@ class StateMachineEditor:
         self.root.title("State Machine Editor")
         self.root.minsize(30, 800)
         
-        # Text widget for editing
         self.text = tk.Text(self.root, wrap=tk.WORD)
         self.text.pack(expand=True, fill=tk.BOTH)
         
-        # Pre-populate with the current state machine's INI content if available
         if ini_content:
             self.text.insert(tk.END, ini_content)
         
-        # Button Frame
         button_frame = tk.Frame(self.root)
         button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
-        # Buttons for Load, Save, Edit
         load_button = tk.Button(button_frame, text="Load", command=self.load_ini_file)
         save_button = tk.Button(button_frame, text="Save as JSON", command=self.save_as_json)
         edit_button = tk.Button(button_frame, text="Edit", command=self.edit_state_machine)
@@ -508,8 +501,8 @@ class StateMachineEditor:
             return
         with open(file_path, 'r') as file:
             content = file.read()
-            self.text.delete(1.0, tk.END)  # Clear the text widget
-            self.text.insert(tk.END, content)  # Insert the INI content
+            self.text.delete(1.0, tk.END)
+            self.text.insert(tk.END, content)
         messagebox.showinfo("Load", f"Loaded {file_path}")
 
     def save_as_json(self):
@@ -525,7 +518,6 @@ class StateMachineEditor:
         # Convert INI content to JSON format
         state_machine_dict = {section: dict(config.items(section)) for section in config.sections()}
         
-        # Save JSON
         file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")])
         if not file_path:
             return
@@ -540,7 +532,6 @@ class StateMachineEditor:
         if not file_path:
             return
         
-        # Load the JSON file as a state machine in the CLI
         self.cli_instance.load_json_state_machine(file_path)
         messagebox.showinfo("Edit", f"Loaded {file_path} into the state machine")
 
@@ -548,23 +539,15 @@ class StateMachineEditor:
         self.root.mainloop()
 
 
-import tkinter as tk
-import math
-
 class StateMachineGraph:
     def __init__(self, json_data):
         self.json_data = json_data
         self.root = tk.Tk()
         self.root.title("State Machine Graph")
-
-        # Canvas for drawing
         self.canvas = tk.Canvas(self.root, width=800, height=600, bg="white")
         self.canvas.pack(fill=tk.BOTH, expand=True)
-
-        # Parameters for drawing
-        self.state_radius = 40  # Radius for the oval representing a state
+        self.state_radius = 40
         self.states_positions = {}
-
         self.draw_graph()
 
     def draw_graph(self):
@@ -585,7 +568,7 @@ class StateMachineGraph:
 
     def position_states_in_circle(self, states):
         """Position states in a circle for a basic layout."""
-        center_x, center_y = 400, 300  # Center of the canvas
+        center_x, center_y = 400, 300
         radius = 200 
 
         num_states = len(states)
