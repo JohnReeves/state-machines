@@ -2,13 +2,13 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import configparser
 import math
-
 import argparse
 import asyncio
 import json
 import logging
-import os
 import cmd
+import os
+
 
 class LoggerConfig:
     @staticmethod
@@ -134,8 +134,8 @@ class StateMachineCLI(cmd.Cmd):
 \033[4mUtility commands\033[0m
     list: Displays the available state machine JSON files
     load <filname>: Loads a state machine from the specified JSON file
-    edit: Edits the loaded state machine using the embedded text editor
-    graph: Displays the loaded state machine as a graph
+    edit: Use the embedded text editor to edit the loaded state machine
+    graph: Display the loaded state machine as a graph
     load_two <filename1> <filname2>: Loads two state machines for running concurrently
     quit or exit: Exits the CLI.
 
@@ -431,6 +431,7 @@ class StateMachineCLI(cmd.Cmd):
         task1 = asyncio.create_task(self.run_machine(self.machine1))
         task2 = asyncio.create_task(self.run_machine(self.machine2))
         
+        # Run both tasks concurrently
         await asyncio.gather(task1, task2)
 
     async def run_machine(self, machine):
@@ -477,15 +478,19 @@ class StateMachineEditor:
         self.root.title("State Machine Editor")
         self.root.minsize(30, 800)
         
+        # Text widget for editing
         self.text = tk.Text(self.root, wrap=tk.WORD)
         self.text.pack(expand=True, fill=tk.BOTH)
         
+        # Pre-populate with the current state machine's INI content if available
         if ini_content:
             self.text.insert(tk.END, ini_content)
         
+        # Button Frame
         button_frame = tk.Frame(self.root)
         button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
+        # Buttons for Load, Save, Edit
         load_button = tk.Button(button_frame, text="Load", command=self.load_ini_file)
         save_button = tk.Button(button_frame, text="Save as JSON", command=self.save_as_json)
         edit_button = tk.Button(button_frame, text="Edit", command=self.edit_state_machine)
@@ -501,8 +506,8 @@ class StateMachineEditor:
             return
         with open(file_path, 'r') as file:
             content = file.read()
-            self.text.delete(1.0, tk.END)
-            self.text.insert(tk.END, content)
+            self.text.delete(1.0, tk.END)  # Clear the text widget
+            self.text.insert(tk.END, content)  # Insert the INI content
         messagebox.showinfo("Load", f"Loaded {file_path}")
 
     def save_as_json(self):
@@ -518,6 +523,7 @@ class StateMachineEditor:
         # Convert INI content to JSON format
         state_machine_dict = {section: dict(config.items(section)) for section in config.sections()}
         
+        # Save JSON
         file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")])
         if not file_path:
             return
@@ -532,6 +538,7 @@ class StateMachineEditor:
         if not file_path:
             return
         
+        # Load the JSON file as a state machine in the CLI
         self.cli_instance.load_json_state_machine(file_path)
         messagebox.showinfo("Edit", f"Loaded {file_path} into the state machine")
 
@@ -548,6 +555,7 @@ class StateMachineGraph:
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.state_radius = 40
         self.states_positions = {}
+        self.state_ovals = {}
         self.draw_graph()
 
     def draw_graph(self):
@@ -556,19 +564,22 @@ class StateMachineGraph:
         states = list(transitions.keys())
 
         self.position_states_in_circle(states)
-
+        
         for state, (x, y) in self.states_positions.items():
-            self.draw_state_oval(x, y, state)
+            self.state_ovals[state] = self.draw_state_oval(x, y, state)
 
         for from_state, events in transitions.items():
             from_x, from_y = self.states_positions[from_state]
             for event, to_state in events.items():
                 to_x, to_y = self.states_positions[to_state]
-                self.draw_transition(from_x, from_y, to_x, to_y, event)
+                if from_state == to_state:
+                    self.draw_self_transition(from_x, from_y, event)
+                else:
+                    self.draw_transition_with_arc(from_x, from_y, to_x, to_y, event)
 
     def position_states_in_circle(self, states):
         """Position states in a circle for a basic layout."""
-        center_x, center_y = 400, 300
+        center_x, center_y = 400, 300  
         radius = 200 
 
         num_states = len(states)
@@ -583,19 +594,45 @@ class StateMachineGraph:
     def draw_state_oval(self, x, y, state_name):
         """Draw an oval for the state and place its name in the center."""
         r = self.state_radius
-        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="lightblue", outline="black")
-        self.canvas.create_text(x, y, text=state_name, font=("Arial", 14))
+        state_oval = self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="lightblue", outline="black")
+        self.canvas.create_text(x, y, text=state_name, font=("Arial", 14), fill="black")
+        return state_oval
 
-    def draw_transition(self, from_x, from_y, to_x, to_y, event_name):
-        """Draw a line with an arrow from one state to another, labeled with an event."""
-        self.canvas.create_line(from_x, from_y, to_x, to_y, arrow=tk.LAST, fill="black")
-
+    def draw_transition_with_arc(self, from_x, from_y, to_x, to_y, event_name):
+        """Draw an elliptical arc from one state to another, and a dot at the end."""
         mid_x = (from_x + to_x) / 2
         mid_y = (from_y + to_y) / 2
-        self.canvas.create_text(mid_x, mid_y - 10, text=event_name, font=("Arial", 10, "italic"))
+
+        arc_bbox = (min(from_x, to_x) - 60, min(from_y, to_y) - 60, max(from_x, to_x) + 60, max(from_y, to_y) + 60)
+        self.canvas.create_arc(arc_bbox, start=0, extent=180, style=tk.ARC, outline="black")
+        dot_radius = 5
+        self.canvas.create_oval(to_x - dot_radius, to_y - dot_radius, to_x + dot_radius, to_y + dot_radius, fill="black")
+        self.canvas.create_text(mid_x, mid_y - 40, text=event_name, font=("Arial", 10, "italic"), fill="black")
+
+    def draw_self_transition(self, x, y, event_name):
+        """Draw a self-loop for states that transition to themselves."""
+        r = self.state_radius
+        loop_size = 20
+        self.canvas.create_arc(x - r, y - r - loop_size, x + r, y - loop_size, start=0, extent=180, style=tk.ARC)
+        self.canvas.create_text(x, y - r - 20, text=event_name, font=("Arial", 10, "italic"), fill="black")
+
+    def highlight_state(self, state):
+        """Highlight the current state being executed."""
+        oval = self.state_ovals[state]
+        self.canvas.itemconfig(oval, fill="yellow")
+
+    def unhighlight_state(self, state):
+        """Unhighlight the state once transition is done."""
+        oval = self.state_ovals[state]
+        self.canvas.itemconfig(oval, fill="lightblue")
 
     def run(self):
         self.root.mainloop()
+
+    def update(self):
+        """Allow the tkinter window to update asynchronously"""
+        self.root.update_idletasks()
+        self.root.update()
 
 
 def parse_args_and_run_cli():
