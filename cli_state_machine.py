@@ -226,21 +226,25 @@ class StateMachineCLI(cmd.Cmd):
         editor.run()
 
     def convert_json_to_ini(self, json_data):
-        """Convert the loaded JSON state machine data into INI format with state subsections."""
+        """Convert the loaded JSON state machine data into INI format"""
         ini_content = []
 
-        # Write the initial state under the [states] section
-        if 'states' in json_data and 'initial' in json_data['states']:
-            ini_content.append("[states]")
-            ini_content.append(f"initial = {json_data['states']['initial']}\n")
+        if 'initial_state' in json_data:
+            ini_content.append("[InitialState]")
+            ini_content.append(f"initial_state:[{json_data['initial_state']}]\n")
 
-        # Write each state's transitions as subsections
+        if 'event_sequence' in json_data:
+            ini_content.append("[EventSequence]")
+            event_sequence = ', '.join(json_data['event_sequence'])
+            ini_content.append(f"event_sequence:[{event_sequence}] \n")
+
         if 'transitions' in json_data:
+            ini_content.append("[Transitions]")
             for state, events in json_data['transitions'].items():
                 ini_content.append(f"[{state}]")
                 for event, to_state in events.items():
-                    ini_content.append(f"{event} = {to_state}")
-                ini_content.append("")  # Blank line for readability
+                    ini_content.append(f"{event}:{to_state}")
+                ini_content.append("")
 
         return "\n".join(ini_content)
     
@@ -250,18 +254,20 @@ class StateMachineCLI(cmd.Cmd):
         config.read_string(ini_content)
 
         state_machine_dict = {
-            "states": {},
-            "transitions": {}
+            "initial_state": [],
+            "event_sequence": [],
+            "transitions":{}
         }
 
-        # Process the initial state
-        if 'states' in config:
-            if 'initial' in config['states']:
-                state_machine_dict['states']['initial'] = config['states']['initial']
+        if 'InitialState' in config:
+            state_machine_dict['initial_state'] = config['InitialState']['initial_state']
 
-        # Process transitions for each state
-        for state in config.sections():
-            if state != 'states':  # Ignore the general 'states' section
+        if 'EventSequence' in config:
+            state_machine_dict['event_sequence'] = config['EventSequence']['event_sequence']
+
+        if "Transitions" in config:
+            for state in config.sections():
+ #           if state != 'states':  # Ignore the general 'states' section
                 transitions = {}
                 for event, next_state in config.items(state):
                     transitions[event] = next_state
@@ -499,6 +505,60 @@ class StateMachineEditor:
         save_button.pack(side=tk.LEFT)
         edit_button.pack(side=tk.LEFT)
 
+    def convert_json_to_ini(self, json_data):
+        """Convert the loaded JSON state machine data into INI format"""
+        ini_content = []
+
+        if 'initial_state' in json_data:
+            ini_content.append("[InitialState]")
+            ini_content.append(f"initial_state = {json_data['initial_state']}\n")
+
+        if 'event_sequence' in json_data:
+            ini_content.append("[EventSequence]")
+            ini_content.append(f"event_sequence = {json_data['event_sequence']}\n")
+
+        if 'transition' in json_data:
+            for state, events in json_data['transition'].items():
+                ini_content.append(f"[state]")
+                for event, to_state in events.items():
+                    ini_content.append(f"{event} = {to_state}")
+                ini_content.append("")
+
+        return "\n".join(ini_content)
+
+
+    def convert_ini_to_json(self, ini_string):
+        config = configparser.ConfigParser()
+        config.read_string(ini_string)
+
+        json_data = {
+            'transitions': {},
+            'state_sequence': []
+        }
+
+        # Extract initial state from Meta section
+        if 'Meta' in config.sections():
+            json_data['initial_state'] = config.get('Meta', 'initial_state')
+
+        # Extract state transitions
+        for state in config.sections():
+            if state not in ['Meta', 'StateSequence']:
+                json_data['transitions'][state] = {}
+                for event in config.options(state):
+                    transition_info = config.get(state, event).split(', ')
+                    target_state = transition_info[0]
+                    guard = transition_info[1].split('=')[1] if len(transition_info) > 1 else None
+                    json_data['transitions'][state][event] = {'next_state': target_state}
+                    if guard and guard != 'None':
+                        json_data['transitions'][state][event]['guard'] = guard
+
+        # Extract state sequence
+        if 'StateSequence' in config.sections():
+            for key in config.options('StateSequence'):
+                json_data['state_sequence'].append(config.get('StateSequence', key))
+
+        return json_data
+
     def load_ini_file(self):
         """Load an INI state machine file into the text editor."""
         file_path = filedialog.askopenfilename(defaultextension=".ini", filetypes=[("INI Files", "*.ini"), ("All Files", "*.*")])
@@ -556,6 +616,7 @@ class StateMachineGraph:
         self.state_radius = 40
         self.states_positions = {}
         self.state_ovals = {}
+
         self.draw_graph()
 
     def draw_graph(self):
@@ -564,7 +625,7 @@ class StateMachineGraph:
         states = list(transitions.keys())
 
         self.position_states_in_circle(states)
-        
+
         for state, (x, y) in self.states_positions.items():
             self.state_ovals[state] = self.draw_state_oval(x, y, state)
 
@@ -579,7 +640,7 @@ class StateMachineGraph:
 
     def position_states_in_circle(self, states):
         """Position states in a circle for a basic layout."""
-        center_x, center_y = 400, 300  
+        center_x, center_y = 400, 300
         radius = 200 
 
         num_states = len(states)
@@ -595,7 +656,7 @@ class StateMachineGraph:
         """Draw an oval for the state and place its name in the center."""
         r = self.state_radius
         state_oval = self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="lightblue", outline="black")
-        self.canvas.create_text(x, y, text=state_name, font=("Arial", 14), fill="black")
+        self.canvas.create_text(x, y, text=state_name, font=("Arial", 14), fill="black")  # Font color: black
         return state_oval
 
     def draw_transition_with_arc(self, from_x, from_y, to_x, to_y, event_name):
